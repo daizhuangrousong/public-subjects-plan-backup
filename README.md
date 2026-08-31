@@ -2,6 +2,40 @@
 
 面向金融、陪伴和社区三个垂直领域的公开 AI eval pilot。仓库公开评测提示、领域 system policy、reference-stack 与 Vertical Lift 实验的真实回复、逐条裁判结果和可复核脚本。
 
+## 三域架构
+
+```mermaid
+flowchart TB
+  subgraph DOMAINS["三域 public dev（每域 12 条公开场景）"]
+    FIN["金融 · 投资者支持助手<br/>policy / tool fixture / transaction 编排"]
+    CMP["陪伴 · AI 陪伴与日常支持<br/>policy / training / orchestration + Cp/Dp 敏感性"]
+    CMT["社区 · moderation system（非聊天）<br/>policy / context / appeal workflow"]
+  end
+
+  subgraph MATRIX["受控矩阵（同基座 Qwen2-7B-Instruct，hash 冻结）"]
+    AF["A minimal → B policy → C tool/context<br/>→ D policy+tool → E orchestration/appeal → F full stack"]
+    OBS["观察臂：Fg（金融 FinGPT LoRA）· Gg（Qwen3Guard）<br/>仅观察，不参与 causal 对比"]
+  end
+
+  subgraph PIPE["运行 · 裁判 · 冻结"]
+    GEN["vLLM / transformers 生成，配置与引擎版本入 manifest"]
+    JUDGE["DashScope Qwen3.8-Max 盲评（prompt 不含配置名）"]
+    BOOT["逐条 provenance + 配对 bootstrap 95% CI"]
+    FREEZE["run_freeze_manifest_v0.4.json + SHA256SUMS<br/>hidden 三域未运行、不入仓"]
+  end
+
+  DOMAINS --> MATRIX
+  MATRIX --> GEN --> JUDGE --> BOOT --> FREEZE
+```
+
+## 核心结论（provisional / LLM-judge-only）
+
+1. **陪伴域 96/96 有效盲评**：training / policy / orchestration 全部配对 bootstrap CI 跨 0，只能报告方向性点估计。
+2. **金融域 72/72（Fg 未评）**：tool / orchestration / total stack 全部 CI 跨 0 → 当前 public-dev 切片**未检测到可分离 lift**（≠“没有 lift”）；Fg `infra_blocked`，无同基座 full-FT 对照。
+3. **社区域 84/84**：仅 A→B quality CI `[0.08, 0.67]` 未跨 0（n=12 多重探索，不作正式显著性 claim）；其余比较未检测到可分离 lift；Gg 专用 guard 仅观察轨。
+4. **测量对象与外推边界显式声明**：社区域测的是 moderation system 而非聊天模型；专用 guard 与通用模型不同基座、不同原生输出格式，禁止 causal 对比。
+5. **诚实边界**：hidden formal set 三域均未运行；人标校准为开放合作项；基础设施失败（Fg）按授权停止并留 provenance，不回填、不伪装成功。
+
 ## 版本定位
 
 | 版本 | 含义 |
